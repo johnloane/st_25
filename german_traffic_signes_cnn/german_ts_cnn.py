@@ -7,6 +7,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.layers import Dropout, Flatten
 from tensorflow.keras.layers import Conv2D, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import pickle
 import pandas as pd
 import cv2
@@ -31,7 +32,8 @@ def main():
     X_train, X_val, X_test = reshape_for_cnn(X_train, X_val, X_test)
     y_train, y_val, y_test = one_hot_encode(num_classes, y_train, y_val, y_test)
     model = modified_model(num_classes)
-    evaluate_model(model, X_train, y_train, X_val, y_val, X_test, y_test)
+    datagen = create_data_generator()
+    evaluate_model(model, X_train, y_train, X_val, y_val, X_test, y_test, datagen)
     url_30 = "https://c8.alamy.com/comp/G667W0/road-sign-speed-limit-30-kmh-zone-passau-bavaria-germany-G667W0.jpg"
     test_model_with_images(model, url_30)
     url_turn_left = "https://c8.alamy.com/comp/A0RX23/cars-and-automobiles-must-turn-left-ahead-sign-A0RX23.jpg"
@@ -42,8 +44,23 @@ def main():
     test_model_with_images(model, url_yield)
     url_bicycle = "https://c8.alamy.com/comp/J2MRAJ/german-road-sign-bicycles-crossing-J2MRAJ.jpg"
     test_model_with_images(model, url_bicycle)
+    explore_datagen(datagen, X_train, y_train)
     
-  
+    
+def explore_datagen(datagen, X_train, y_train):
+    datagen.fit(X_train)
+    batches = datagen.flow(X_train, y_train, batch_size=20)
+    X_batch, y_batch = next(batches)
+    fig, axs = plt.subplots(1, 15, figsize=(20,5))
+    fig.tight_layout()
+    for i in range(15):
+        axs[i].imshow(X_batch[i].reshape(32, 32))
+        axs[i].axis('off')
+    plt.show()
+    
+def create_data_generator():
+    datagen = ImageDataGenerator(width_shift_range = 0.1, height_shift_range=0.1, zoom_range=0.2, shear_range=0.1, rotation_range=10)
+    return datagen
     
 def test_model_with_images(model, url):
     r = requests.get(url, stream = True)
@@ -56,9 +73,10 @@ def test_model_with_images(model, url):
     print("Predicted sign: " + str(np.argmax(model.predict(img), axis=1)))
   
     
-def evaluate_model(model, X_train, y_train, X_val, y_val, X_test, y_test):
+def evaluate_model(model, X_train, y_train, X_val, y_val, X_test, y_test, datagen):
     print(model.summary())
-    history = model.fit(X_train, y_train, epochs=10, validation_data=(X_val, y_val), batch_size=400, verbose=1, shuffle=1)
+    datagen.fit(X_train)
+    history = model.fit(datagen.flow(X_train, y_train, batch_size = 50),  steps_per_epoch=int(X_train.shape[0]/50), epochs=10, validation_data=(X_val, y_val),verbose=1, shuffle=1)
     plt.plot(history.history['accuracy'])
     plt.plot(history.history['val_accuracy'])
     plt.legend(['training', 'validation'])
@@ -97,7 +115,6 @@ def modified_model(num_classes):
     model.add(Conv2D(30, (3, 3), input_shape=(32, 32, 1), activation='relu'))
     model.add(Conv2D(30, (3, 3), input_shape=(32, 32, 1), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Dropout(0.5))
     model.add(Flatten())
     model.add(Dense(500, activation='relu'))
     model.add(Dropout(0.5))

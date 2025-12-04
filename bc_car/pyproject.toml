@@ -1,0 +1,18 @@
+[project]
+name = "bc-car"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "eventlet>=0.40.4",
+    "flask>=3.1.2",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.5",
+    "opencv-contrib-python>=4.11.0.86",
+    "pandas>=2.3.3",
+    "pillow>=12.0.0",
+    "python-socketio>=5.15.0",
+    "scikit-learn>=1.7.2",
+    "tensorflow>=2.20.0",
+]
